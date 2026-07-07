@@ -1,0 +1,134 @@
+@using LibShared.Models.Invoices
+@using IntakeClient
+@using MudBlazor
+@inject InvoiceApiClient _invoiceApi
+
+<MudDialog>
+    <TitleContent>Compare Invoice Document</TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Upload an invoice document to compare it against the stored invoice with the same invoice number. Nothing is saved.
+        </MudText>
+
+        <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected" Accept=".json,.csv,.txt">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AttachFile">
+                    Choose File
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+
+        @if (selectedFile is not null)
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">@selectedFile.Name</MudText>
+        }
+
+        @if (errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@errorMessage</MudAlert>
+        }
+
+        @if (result is not null)
+        {
+            @if (!result.MatchFound)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mt-3">
+                    No stored invoice found with number "@result.InvoiceNumber".
+                </MudAlert>
+            }
+            else if (result.IsIdentical)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-3">
+                    The uploaded document matches the stored invoice exactly.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-3">
+                    Differences found for invoice "@result.InvoiceNumber":
+                </MudAlert>
+                <MudSimpleTable Dense="true" Class="mt-2">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Stored</th>
+                            <th>Uploaded</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var diff in result.Differences)
+                        {
+                            <tr>
+                                <td>@diff.FieldName</td>
+                                <td>@diff.StoredValue</td>
+                                <td>@diff.UploadedValue</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Compare" Disabled="@(selectedFile is null || isComparing)">
+            @(isComparing ? "Comparing..." : "Compare")
+        </MudButton>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024;
+
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    private IBrowserFile? selectedFile;
+    private CompareInvoiceResponse? result;
+    private string? errorMessage;
+    private bool isComparing;
+
+    private void OnFileSelected(IBrowserFile file)
+    {
+        selectedFile = file;
+        errorMessage = null;
+        result = null;
+    }
+
+    private async Task Compare()
+    {
+        if (selectedFile is null)
+        {
+            return;
+        }
+
+        isComparing = true;
+        errorMessage = null;
+        result = null;
+
+        try
+        {
+            await using Stream stream = selectedFile.OpenReadStream(MaxFileSizeBytes);
+            var (compareResult, error) = await _invoiceApi.CompareAsync(stream, selectedFile.Name, selectedFile.ContentType);
+
+            if (compareResult is not null)
+            {
+                result = compareResult;
+            }
+            else
+            {
+                errorMessage = error;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Comparison failed: {ex.Message}";
+        }
+        finally
+        {
+            isComparing = false;
+        }
+    }
+
+    private void Close() => MudDialog?.Close();
+}

@@ -1,0 +1,65 @@
+@using LibShared.Models.Invoices
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>Invoice @Invoice?.InvoiceNumber</TitleContent>
+    <DialogContent>
+        @if (Invoice is not null)
+        {
+            <MudGrid Spacing="2" Class="mb-3">
+                <MudItem xs="6">
+                    <MudText Typo="Typo.caption">Supplier</MudText>
+                    <MudText Typo="Typo.body1">@Invoice.Supplier</MudText>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudText Typo="Typo.caption">Invoice Date</MudText>
+                    <MudText Typo="Typo.body1">@Invoice.InvoiceDate.ToString("dd-MMM-yyyy")</MudText>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudText Typo="Typo.caption">Total Amount</MudText>
+                    <MudText Typo="Typo.body1">@Invoice.TotalAmount.ToString("N2")</MudText>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudText Typo="Typo.caption">Source File</MudText>
+                    <MudText Typo="Typo.body1">@(Invoice.SourceFileName ?? "-")</MudText>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Line Items</MudText>
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="text-align: right;">Quantity</th>
+                        <th style="text-align: right;">Unit Price</th>
+                        <th style="text-align: right;">Line Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Invoice.Items)
+                    {
+                        <tr>
+                            <td>@item.Description</td>
+                            <td style="text-align: right;">@item.Quantity.ToString("0.###")</td>
+                            <td style="text-align: right;">@item.UnitPrice.ToString("N2")</td>
+                            <td style="text-align: right;">@item.LineTotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public InvoiceResponse? Invoice { get; set; }
+
+    private void Close() => MudDialog?.Close();
+}

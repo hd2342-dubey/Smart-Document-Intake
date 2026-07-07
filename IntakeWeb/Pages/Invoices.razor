@@ -1,0 +1,224 @@
+@page "/"
+@page "/invoices"
+@using LibShared.Models.Invoices
+@using IntakeClient
+@using IntakeWeb.Shared.Dialogs
+@using IntakeWeb.Shared.Dialogs.InvoiceDialogs
+@using MudBlazor
+@inject InvoiceApiClient _invoiceApi
+@inject IDialogService _dialog
+@inject ISnackbar _snackbar
+
+<MudText Typo="Typo.h5" Class="mb-4">Invoices</MudText>
+
+@if (dashboard is not null)
+{
+    <MudGrid Spacing="2" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Total Invoices</MudText>
+                <MudText Typo="Typo.h6">@dashboard.TotalInvoices</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Total Amount</MudText>
+                <MudText Typo="Typo.h6">@dashboard.TotalAmount.ToString("N2")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Average Invoice</MudText>
+                <MudText Typo="Typo.h6">@dashboard.AverageInvoiceAmount.ToString("N2")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Suppliers</MudText>
+                <MudText Typo="Typo.h6">@dashboard.SupplierCount</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2" Class="align-end">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="filterInvoiceNumber" Label="Invoice Number" Clearable="true" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="filterSupplier" Label="Supplier" Clearable="true" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker @bind-Date="filterDateFrom" Label="From" Clearable="true" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker @bind-Date="filterDateTo" Label="To" Clearable="true" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Search">Search</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="ResetFilters">Reset</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<div class="d-flex justify-space-between mb-3">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload" OnClick="OpenUploadDialog">
+        Upload Invoice
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Compare" OnClick="OpenCompareDialog">
+        Compare Document
+    </MudButton>
+</div>
+
+<MudDataGrid Items="@invoices" Dense="true" Hover="true" Loading="@isLoading" Class="custom-border">
+    <Columns>
+        <PropertyColumn Property="x => x.InvoiceNumber" Title="Invoice #" />
+        <PropertyColumn Property="x => x.Supplier" Title="Supplier" />
+        <PropertyColumn Property="x => x.InvoiceDate" Title="Date" Format="dd-MMM-yyyy" />
+        <PropertyColumn Property="x => x.TotalAmount" Title="Total" Format="N2" />
+        <TemplateColumn Title="Items">
+            <CellTemplate>@context.Item.Items.Count</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Actions">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" OnClick="() => ViewInvoice(context.Item)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => DeleteInvoice(context.Item.InvoiceId)" />
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@if (totalCount > pageSize)
+{
+    <div class="d-flex justify-center mt-4">
+        <MudPagination Count="@TotalPages" Selected="@currentPage" SelectedChanged="OnPageChanged" />
+    </div>
+}
+
+@code {
+    private List<InvoiceResponse> invoices = [];
+    private DashboardResponse? dashboard;
+    private bool isLoading;
+
+    private string? filterInvoiceNumber;
+    private string? filterSupplier;
+    private DateTime? filterDateFrom;
+    private DateTime? filterDateTo;
+
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalCount;
+
+    private int TotalPages => (int)Math.Ceiling(totalCount / (double)pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+
+        try
+        {
+            var searchTask = _invoiceApi.SearchAsync(
+                filterInvoiceNumber,
+                filterSupplier,
+                filterDateFrom.HasValue ? DateOnly.FromDateTime(filterDateFrom.Value) : null,
+                filterDateTo.HasValue ? DateOnly.FromDateTime(filterDateTo.Value) : null,
+                currentPage,
+                pageSize);
+
+            var dashboardTask = _invoiceApi.GetDashboardAsync();
+
+            var searchResult = await searchTask;
+            dashboard = await dashboardTask;
+
+            invoices = searchResult?.Invoices ?? [];
+            totalCount = searchResult?.TotalCount ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Failed to load invoices: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task Search()
+    {
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private async Task ResetFilters()
+    {
+        filterInvoiceNumber = null;
+        filterSupplier = null;
+        filterDateFrom = null;
+        filterDateTo = null;
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private async Task OnPageChanged(int newPage)
+    {
+        currentPage = newPage;
+        await LoadData();
+    }
+
+    private async Task OpenUploadDialog()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await _dialog.ShowAsync<UploadInvoiceDialog>("Upload Invoice", options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task OpenCompareDialog()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await _dialog.ShowAsync<CompareInvoiceDialog>("Compare Invoice", options);
+    }
+
+    private async Task ViewInvoice(InvoiceResponse invoice)
+    {
+        var parameters = new DialogParameters<InvoiceDetailsDialog>();
+        parameters.Add(x => x.Invoice, invoice);
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await _dialog.ShowAsync<InvoiceDetailsDialog>("Invoice Details", parameters, options);
+    }
+
+    private async Task DeleteInvoice(int invoiceId)
+    {
+        var parameters = new DialogParameters { ["Id"] = invoiceId };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+
+        var dialog = await _dialog.ShowAsync<DeleteConfirmationDialog>("Confirm Deletion", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            if (await _invoiceApi.DeleteAsync(invoiceId))
+            {
+                _snackbar.Add("Invoice Deleted", Severity.Warning);
+                await LoadData();
+            }
+            else
+            {
+                _snackbar.Add("Failed to delete invoice", Severity.Error);
+            }
+        }
+    }
+}

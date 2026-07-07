@@ -1,0 +1,98 @@
+@using LibShared.Models.Invoices
+@using IntakeClient
+@using MudBlazor
+@inject InvoiceApiClient _invoiceApi
+@inject ISnackbar _snackbar
+
+<MudDialog>
+    <TitleContent>Upload Invoice Document</TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Upload a .json, .csv, or .txt invoice document. The invoice data is extracted, validated, and stored.
+        </MudText>
+
+        <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected" Accept=".json,.csv,.txt">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AttachFile">
+                    Choose File
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+
+        @if (selectedFile is not null)
+        {
+            <MudText Typo="Typo.body2" Class="mt-2">@selectedFile.Name (@(selectedFile.Size / 1024) KB)</MudText>
+        }
+
+        @if (errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@errorMessage</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Upload" Disabled="@(selectedFile is null || isUploading)">
+            @(isUploading ? "Uploading..." : "Upload")
+        </MudButton>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024;
+
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    private IBrowserFile? selectedFile;
+    private string? errorMessage;
+    private bool isUploading;
+
+    private void OnFileSelected(IBrowserFile file)
+    {
+        selectedFile = file;
+        errorMessage = null;
+    }
+
+    private async Task Upload()
+    {
+        if (selectedFile is null)
+        {
+            return;
+        }
+
+        if (selectedFile.Size > MaxFileSizeBytes)
+        {
+            errorMessage = "File is too large. Maximum size is 5 MB.";
+            return;
+        }
+
+        isUploading = true;
+        errorMessage = null;
+
+        try
+        {
+            await using Stream stream = selectedFile.OpenReadStream(MaxFileSizeBytes);
+            var (invoice, error) = await _invoiceApi.UploadAsync(stream, selectedFile.Name, selectedFile.ContentType);
+
+            if (invoice is not null)
+            {
+                _snackbar.Add($"Invoice {invoice.InvoiceNumber} uploaded", Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(invoice));
+            }
+            else
+            {
+                errorMessage = error;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Upload failed: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+}
