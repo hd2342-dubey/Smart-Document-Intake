@@ -30,7 +30,7 @@ Solution file: `SmartDocumentIntake.sln`
 
 ## Prerequisites
 
-- .NET 9 SDK
+- .NET 10 SDK
 - A PostgreSQL database
 
 ## Setup
