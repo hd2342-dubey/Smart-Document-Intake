@@ -2,9 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LibShared.Models.Invoices;
 
-/// <summary>
-/// Structured invoice data extracted from an uploaded document.
-/// </summary>
 public class InvoiceRequest
 {
     [Required(ErrorMessage = "Invoice number is required.")]

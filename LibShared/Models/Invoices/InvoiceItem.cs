@@ -1,9 +1,5 @@
 namespace LibShared.Models.Invoices;
 
-/// <summary>
-/// Invoice line item entity. Table mapping is configured with Fluent API
-/// (see InvoiceItemConfiguration in the API project).
-/// </summary>
 public class InvoiceItem
 {
     public int InvoiceItemId { get; set; }

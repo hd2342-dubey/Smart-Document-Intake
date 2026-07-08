@@ -1,8 +1,5 @@
 namespace LibShared.Models.Invoices;
 
-/// <summary>
-/// Optional filters for searching invoices. All properties are optional.
-/// </summary>
 public class InvoiceSearchFilter
 {
     public string? Supplier { get; set; }

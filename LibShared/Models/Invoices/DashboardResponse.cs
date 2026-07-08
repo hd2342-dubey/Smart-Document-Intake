@@ -1,8 +1,5 @@
 namespace LibShared.Models.Invoices;
 
-/// <summary>
-/// Invoice dashboard statistics.
-/// </summary>
 public class DashboardResponse
 {
     public int TotalInvoices { get; set; }

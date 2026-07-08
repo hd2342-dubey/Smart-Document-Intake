@@ -5,10 +5,6 @@ using LibShared.Models.Invoices;
 
 namespace IntakeServer.Services.Invoices;
 
-/// <summary>
-/// Business logic for invoice intake: parsing, validation, duplicate detection,
-/// persistence, search, dashboard statistics, and document comparison.
-/// </summary>
 public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceService> logger) : IInvoiceService
 {
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
@@ -26,9 +22,11 @@ public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceServic
         // Business rule: an invoice number must be unique per supplier.
         Invoice? existing = await _repository.GetByNumberAndSupplierAsync(request.InvoiceNumber, request.Supplier);
         if (existing is not null)
+        {
             throw new DuplicateInvoiceException(request.InvoiceNumber, request.Supplier);
+        }
 
-        var invoice = new Invoice
+        Invoice invoice = new()
         {
             InvoiceNumber = request.InvoiceNumber.Trim(),
             Supplier = request.Supplier.Trim(),
@@ -48,17 +46,14 @@ public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceServic
         invoice.TotalAmount = invoice.Items.Sum(i => i.LineTotal);
 
         Invoice created = await _repository.AddAsync(invoice);
-        _logger.LogInformation("Invoice {InvoiceNumber} from {Supplier} created with id {InvoiceId}",
-            created.InvoiceNumber, created.Supplier, created.InvoiceId);
+        _logger.LogInformation("Invoice {InvoiceNumber} from {Supplier} created with id {InvoiceId}", created.InvoiceNumber, created.Supplier, created.InvoiceId);
 
         return MapToResponse(created);
     }
 
     public async Task<InvoiceResponse> GetByIdAsync(int invoiceId)
     {
-        Invoice invoice = await _repository.GetByIdAsync(invoiceId)
-            ?? throw new InvoiceNotFoundException(invoiceId);
-
+        Invoice invoice = await _repository.GetByIdAsync(invoiceId) ?? throw new InvoiceNotFoundException(invoiceId);
         return MapToResponse(invoice);
     }
 
@@ -80,10 +75,9 @@ public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceServic
 
     public async Task DeleteAsync(int invoiceId)
     {
-        Invoice invoice = await _repository.GetByIdAsync(invoiceId)
-            ?? throw new InvoiceNotFoundException(invoiceId);
+        Invoice invoice = await _repository.GetByIdAsync(invoiceId) ?? throw new InvoiceNotFoundException(invoiceId);
 
-        await _repository.DeleteAsync(invoice);
+        await _repository.DeleteAsync(invoice);  
         _logger.LogInformation("Invoice {InvoiceId} deleted", invoiceId);
     }
 
@@ -101,7 +95,7 @@ public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceServic
 
         Invoice? stored = await _repository.GetByNumberAsync(uploaded.InvoiceNumber);
 
-        var response = new CompareInvoiceResponse
+        CompareInvoiceResponse response = new()
         {
             InvoiceNumber = uploaded.InvoiceNumber,
             MatchFound = stored is not null
@@ -113,13 +107,9 @@ public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceServic
         decimal uploadedTotal = uploaded.Items.Sum(i => Math.Round(i.Quantity * i.UnitPrice, 2));
 
         AddDifferenceIfChanged(response, "Supplier", stored.Supplier, uploaded.Supplier.Trim());
-        AddDifferenceIfChanged(response, "InvoiceDate",
-            stored.InvoiceDate.ToString("yyyy-MM-dd"), uploaded.InvoiceDate.ToString("yyyy-MM-dd"));
-        AddDifferenceIfChanged(response, "TotalAmount",
-            stored.TotalAmount.ToString("0.00", CultureInfo.InvariantCulture),
-            uploadedTotal.ToString("0.00", CultureInfo.InvariantCulture));
-        AddDifferenceIfChanged(response, "ItemCount",
-            stored.Items.Count.ToString(), uploaded.Items.Count.ToString());
+        AddDifferenceIfChanged(response, "InvoiceDate",stored.InvoiceDate.ToString("yyyy-MM-dd"), uploaded.InvoiceDate.ToString("yyyy-MM-dd"));
+        AddDifferenceIfChanged(response, "TotalAmount", stored.TotalAmount.ToString("0.00", CultureInfo.InvariantCulture), uploadedTotal.ToString("0.00", CultureInfo.InvariantCulture));
+        AddDifferenceIfChanged(response, "ItemCount", stored.Items.Count.ToString(), uploaded.Items.Count.ToString());
 
         response.IsIdentical = response.Differences.Count == 0;
         return response;
@@ -136,7 +126,7 @@ public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceServic
 
     private static void ValidateRequest(InvoiceRequest request)
     {
-        var errors = new List<string>();
+        List<string> errors = [];
 
         if (string.IsNullOrWhiteSpace(request.InvoiceNumber))
             errors.Add("Invoice number is required.");
