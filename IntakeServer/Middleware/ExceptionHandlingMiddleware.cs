@@ -3,9 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IntakeServer.Middleware;
 
-/// <summary>
-/// Converts domain exceptions into consistent RFC 7807 ProblemDetails responses.
-/// </summary>
 public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {
     private readonly RequestDelegate _next = next;
@@ -33,7 +30,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             else
                 _logger.LogWarning("{ExceptionType}: {Message}", exception.GetType().Name, exception.Message);
 
-            var problem = new ProblemDetails
+            ProblemDetails problem = new()
             {
                 Status = statusCode,
                 Title = title,

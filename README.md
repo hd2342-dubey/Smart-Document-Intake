@@ -19,7 +19,6 @@ PostgreSQL
 
 | Project | Type | Purpose |
 |---|---|---|
-| `LibDataAccess` | Class library | Dapper-style `IDataAccess` helper over Npgsql for calling PostgreSQL functions (kept as-is for future repositories) |
 | `LibShared` | Class library | Shared entities and DTOs (`Invoice`, `InvoiceItem`, request/response models, search filter) |
 | `IntakeDatabase` | SQL scripts | Plain `CREATE TABLE` scripts for the invoice schema |
 | `IntakeServer` | ASP.NET Core Web API | `InvoicesController`, `InvoiceService` + `InvoiceDocumentParser`, `InvoiceRepository` (EF Core), `IntakeDbContext` with Fluent API configurations, exception middleware, Swagger, health checks |
@@ -138,4 +137,4 @@ INV-2002,Globex Logistics,2026-07-01,Fuel Surcharge,1,300.00
 - **No over-engineering**: one repository, one service, one parser class. No generic repository, no MediatR, no AutoMapper — mapping is a few explicit lines.
 - **Clear layering**: UI never talks to the database; every call flows UI -> `IntakeClient` -> Controller -> Service -> Repository -> DbContext.
 - **Parsing at the service boundary**: `InvoiceDocumentParser` converts raw uploads into an `InvoiceRequest`; the service validates and persists. The parser is a plain class, easy to extend with new formats.
-- **`LibDataAccess` retained**: the Dapper-style function-call helper is kept unchanged so future repositories can use PostgreSQL functions in the established style.
+  

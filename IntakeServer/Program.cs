@@ -2,7 +2,6 @@ using IntakeServer;
 using IntakeServer.Middleware;
 using IntakeServer.Repositories.Invoices;
 using IntakeServer.Services.Invoices;
-using LibDataAccess;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Data;
@@ -14,10 +13,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<IntakeDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Dapper-based data access (LibDataAccess) available for future repositories.
 builder.Services.AddTransient<IDbConnection>(sp =>
     new NpgsqlConnection(connectionString));
-builder.Services.AddTransient<IDataAccess, DataAccess>();
+
 
 builder.Services.AddControllers();
 

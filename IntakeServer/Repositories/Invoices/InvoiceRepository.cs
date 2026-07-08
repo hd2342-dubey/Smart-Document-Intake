@@ -3,9 +3,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IntakeServer.Repositories.Invoices;
 
-/// <summary>
-/// EF Core repository for invoices. All queries go through IntakeDbContext.
-/// </summary>
 public class InvoiceRepository(IntakeDbContext context) : IInvoiceRepository
 {
     private readonly IntakeDbContext _context = context;

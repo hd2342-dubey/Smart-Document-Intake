@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LibShared\LibShared.csproj" />
-    <ProjectReference Include="..\LibDataAccess\LibDataAccess.csproj" />
   </ItemGroup>
 
 </Project>
