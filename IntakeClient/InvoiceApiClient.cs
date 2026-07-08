@@ -1,13 +1,10 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using LibShared.Models.Invoices;
 
 namespace IntakeClient;
 
-/// <summary>
-/// Typed API client for the invoice endpoints.
-/// Blazor UI -> API Client -> Controller -> Service -> Repository -> Database.
-/// </summary>
-public class InvoiceApiClient(HttpClient http)
+public class InvoiceApiClient(HttpClient http) : IInvoiceApiClient
 {
     private readonly HttpClient _http = http;
 
@@ -16,13 +13,21 @@ public class InvoiceApiClient(HttpClient http)
         var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
 
         if (!string.IsNullOrWhiteSpace(invoiceNumber))
+        {
             query.Add($"invoiceNumber={Uri.EscapeDataString(invoiceNumber)}");
+        }
         if (!string.IsNullOrWhiteSpace(supplier))
+        {
             query.Add($"supplier={Uri.EscapeDataString(supplier)}");
+        }
         if (dateFrom.HasValue)
+        {
             query.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
+        }
         if (dateTo.HasValue)
+        {
             query.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+        }
 
         return await _http.GetFromJsonAsync<SearchInvoiceResponse>($"api/invoices?{string.Join("&", query)}");
     }
@@ -82,18 +87,12 @@ public class InvoiceApiClient(HttpClient http)
     {
         try
         {
-            var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
-            return problem?.Detail ?? $"Request failed ({(int)response.StatusCode})";
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonDocument.Parse(json).RootElement.GetProperty("detail").GetString() ?? $"Request failed ({(int)response.StatusCode})";
         }
         catch
         {
             return $"Request failed ({(int)response.StatusCode})";
         }
-    }
-
-    private sealed class ProblemDetailsResponse
-    {
-        public string? Title { get; set; }
-        public string? Detail { get; set; }
     }
 }

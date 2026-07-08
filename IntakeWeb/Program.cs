@@ -11,7 +11,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 string apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7224/";
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBaseUrl) });
-builder.Services.AddScoped<InvoiceApiClient>();
+builder.Services.AddScoped<IInvoiceApiClient, InvoiceApiClient>();
 builder.Services.AddMudServices();
 
 await builder.Build().RunAsync();
