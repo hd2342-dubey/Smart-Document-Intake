@@ -5,10 +5,6 @@ using LibShared.Models.Invoices;
 
 namespace IntakeServer.Services.Invoices;
 
-/// <summary>
-/// Extracts structured invoice data from uploaded text-based documents.
-/// Supported formats: .json, .csv, .txt
-/// </summary>
 public static class InvoiceDocumentParser
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -36,10 +32,6 @@ public static class InvoiceDocumentParser
         };
     }
 
-    /// <summary>
-    /// JSON documents must match the InvoiceRequest shape:
-    /// { "invoiceNumber": "...", "supplier": "...", "invoiceDate": "2026-01-15", "totalAmount": 100, "items": [...] }
-    /// </summary>
     private static InvoiceRequest ParseJson(string content)
     {
         try
@@ -53,10 +45,6 @@ public static class InvoiceDocumentParser
         }
     }
 
-    /// <summary>
-    /// CSV documents use one row per line item with the invoice header repeated:
-    /// InvoiceNumber,Supplier,InvoiceDate,Description,Quantity,UnitPrice
-    /// </summary>
     private static InvoiceRequest ParseCsv(string content)
     {
         string[] lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -92,13 +80,6 @@ public static class InvoiceDocumentParser
         return request;
     }
 
-    /// <summary>
-    /// TXT documents use "Key: Value" lines for the header and pipe-separated item lines:
-    /// InvoiceNumber: INV-001
-    /// Supplier: Acme Corp
-    /// InvoiceDate: 2026-01-15
-    /// Item: Widget | 2 | 19.99
-    /// </summary>
     private static InvoiceRequest ParseText(string content)
     {
         var request = new InvoiceRequest();

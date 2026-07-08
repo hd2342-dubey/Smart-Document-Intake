@@ -4,9 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace IntakeServer.Data.Configurations;
 
-/// <summary>
-/// Fluent API mapping for the invoice_items table.
-/// </summary>
 public class InvoiceItemConfiguration : IEntityTypeConfiguration<InvoiceItem>
 {
     public void Configure(EntityTypeBuilder<InvoiceItem> builder)
