@@ -117,6 +117,7 @@ INV-2002,Globex Logistics,2026-07-01,Fuel Surcharge,1,300.00
 ## Validation Rules
 
 - Invoice number, supplier, and date are required.
+- Invoice date cannot be in the future.
 - Total amount must be positive and match the sum of line totals (small rounding tolerance).
 - Each line item requires a description, positive quantity, and non-negative unit price.
 - Duplicate uploads (same invoice number + supplier) are rejected with `409 Conflict` (also enforced by a unique index).
