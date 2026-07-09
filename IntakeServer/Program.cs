@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Data;
 
+LoadLocalEnvironmentFile();
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -53,3 +55,35 @@ app.UseHttpsRedirection();
 app.MapControllers();
 app.MapHealthChecks("/health");
 app.Run();
+
+static void LoadLocalEnvironmentFile()
+{
+    var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+
+    if (!File.Exists(envPath))
+    {
+        return;
+    }
+
+    foreach (var line in File.ReadAllLines(envPath))
+    {
+        var trimmedLine = line.Trim();
+
+        if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith('#'))
+        {
+            continue;
+        }
+
+        var separatorIndex = trimmedLine.IndexOf('=');
+
+        if (separatorIndex <= 0)
+        {
+            continue;
+        }
+
+        var key = trimmedLine[..separatorIndex].Trim();
+        var value = trimmedLine[(separatorIndex + 1)..].Trim().Trim('"').Trim('\'');
+
+        Environment.SetEnvironmentVariable(key, value);
+    }
+}
