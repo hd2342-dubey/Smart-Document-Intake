@@ -1,4 +1,3 @@
-@page "/"
 @page "/invoices"
 @using LibShared.Models.Invoices
 @using IntakeClient
@@ -10,36 +9,6 @@
 @inject ISnackbar _snackbar
 
 <MudText Typo="Typo.h5" Class="mb-4">Invoices</MudText>
-
-@if (dashboard is not null)
-{
-    <MudGrid Spacing="2" Class="mb-4">
-        <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="1">
-                <MudText Typo="Typo.caption">Total Invoices</MudText>
-                <MudText Typo="Typo.h6">@dashboard.TotalInvoices</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="1">
-                <MudText Typo="Typo.caption">Total Amount</MudText>
-                <MudText Typo="Typo.h6">@dashboard.TotalAmount.ToString("N2")</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="1">
-                <MudText Typo="Typo.caption">Average Invoice</MudText>
-                <MudText Typo="Typo.h6">@dashboard.AverageInvoiceAmount.ToString("N2")</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="6" sm="3">
-            <MudPaper Class="pa-4" Elevation="1">
-                <MudText Typo="Typo.caption">Suppliers</MudText>
-                <MudText Typo="Typo.h6">@dashboard.SupplierCount</MudText>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-}
 
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <MudGrid Spacing="2" Class="align-end">
@@ -100,7 +69,6 @@
 
 @code {
     private List<InvoiceResponse> invoices = [];
-    private DashboardResponse? dashboard;
     private bool isLoading;
 
     private string? filterInvoiceNumber;
@@ -125,18 +93,13 @@
 
         try
         {
-            var searchTask = _invoiceApi.SearchAsync(
+            var searchResult = await _invoiceApi.SearchAsync(
                 filterInvoiceNumber,
                 filterSupplier,
                 filterDateFrom.HasValue ? DateOnly.FromDateTime(filterDateFrom.Value) : null,
                 filterDateTo.HasValue ? DateOnly.FromDateTime(filterDateTo.Value) : null,
                 currentPage,
                 pageSize);
-
-            var dashboardTask = _invoiceApi.GetDashboardAsync();
-
-            var searchResult = await searchTask;
-            dashboard = await dashboardTask;
 
             invoices = searchResult?.Invoices ?? [];
             totalCount = searchResult?.TotalCount ?? 0;

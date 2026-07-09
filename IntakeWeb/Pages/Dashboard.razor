@@ -1,0 +1,162 @@
+@page "/"
+@page "/dashboard"
+@using LibShared.Models.Invoices
+@using IntakeClient
+@using MudBlazor
+@inject IInvoiceApiClient _invoiceApi
+@inject ISnackbar _snackbar
+
+<MudText Typo="Typo.h5" Class="mb-4">Dashboard</MudText>
+
+@if (isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+}
+else if (dashboard is not null)
+{
+    <MudGrid Spacing="2" Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Total Invoices</MudText>
+                <MudText Typo="Typo.h6">@dashboard.TotalInvoices</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Total Amount</MudText>
+                <MudText Typo="Typo.h6">@dashboard.TotalAmount.ToString("N2")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Average Invoice</MudText>
+                <MudText Typo="Typo.h6">@dashboard.AverageInvoiceAmount.ToString("N2")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.caption">Suppliers</MudText>
+                <MudText Typo="Typo.h6">@dashboard.SupplierCount</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="2" Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Amount by Supplier</MudText>
+                @if (supplierLabels.Length > 0)
+                {
+                    <MudChart ChartType="ChartType.Donut"
+                              InputData="@supplierAmounts"
+                              InputLabels="@supplierLabels"
+                              Width="100%"
+                              Height="300px" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">No supplier data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Invoices per Supplier</MudText>
+                @if (supplierLabels.Length > 0)
+                {
+                    <MudChart ChartType="ChartType.Bar"
+                              ChartSeries="@invoiceCountSeries"
+                              XAxisLabels="@supplierLabels"
+                              Width="100%"
+                              Height="300px" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">No supplier data available.</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Recent Invoices</MudText>
+        @if (dashboard.RecentInvoices.Count > 0)
+        {
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Supplier</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var invoice in dashboard.RecentInvoices)
+                    {
+                        <tr>
+                            <td>@invoice.InvoiceNumber</td>
+                            <td>@invoice.Supplier</td>
+                            <td>@invoice.InvoiceDate.ToString("dd-MMM-yyyy")</td>
+                            <td>@invoice.TotalAmount.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">No recent invoices.</MudText>
+        }
+    </MudPaper>
+}
+else
+{
+    <MudText Typo="Typo.body1" Class="mud-text-secondary">No dashboard data available.</MudText>
+}
+
+@code {
+    private DashboardResponse? dashboard;
+    private bool isLoading;
+
+    private string[] supplierLabels = [];
+    private double[] supplierAmounts = [];
+    private List<ChartSeries> invoiceCountSeries = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboard();
+    }
+
+    private async Task LoadDashboard()
+    {
+        isLoading = true;
+
+        try
+        {
+            dashboard = await _invoiceApi.GetDashboardAsync();
+
+            if (dashboard is not null)
+            {
+                supplierLabels = dashboard.TopSuppliers.Select(s => s.Supplier).ToArray();
+                supplierAmounts = dashboard.TopSuppliers.Select(s => (double)s.TotalAmount).ToArray();
+                invoiceCountSeries =
+                [
+                    new ChartSeries
+                    {
+                        Name = "Invoices",
+                        Data = dashboard.TopSuppliers.Select(s => (double)s.InvoiceCount).ToArray()
+                    }
+                ];
+            }
+        }
+        catch (Exception ex)
+        {
+            _snackbar.Add($"Failed to load dashboard: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

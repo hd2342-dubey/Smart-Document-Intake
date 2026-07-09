@@ -14,7 +14,7 @@ namespace IntakeTests.IntakeWebTests.Pages;
 public class InvoicesTests
 {
     [Fact]
-    public async Task InitialLoad_RendersInvoicesAndDashboardData()
+    public async Task InitialLoad_RendersInvoices()
     {
         await using var ctx = new BunitContext();
         ctx.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -52,14 +52,6 @@ public class InvoicesTests
             ]
         }));
 
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse
-        {
-            TotalInvoices = 1,
-            TotalAmount = 25m,
-            AverageInvoiceAmount = 25m,
-            SupplierCount = 1
-        }));
-
         ctx.Services.AddMudServices();
         ctx.Services.AddSingleton(invoiceApi);
         ctx.Services.AddSingleton(snackbar);
@@ -72,12 +64,9 @@ public class InvoicesTests
             Assert.Contains("INV-001", cut.Markup);
             Assert.Contains("Contoso", cut.Markup);
             Assert.Contains("25.00", cut.Markup);
-            Assert.Contains("Total Invoices", cut.Markup);
-            Assert.Contains("1", cut.Markup);
         });
 
         await invoiceApi.Received(1).SearchAsync(null, null, null, null, 1, 10);
-        await invoiceApi.Received(1).GetDashboardAsync();
     }
 
     [Fact]
@@ -92,7 +81,6 @@ public class InvoicesTests
 
         invoiceApi.SearchAsync(null, null, null, null, 1, 10)
             .Returns(Task.FromException<SearchInvoiceResponse?>(new InvalidOperationException("Network down")));
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse()));
 
         ctx.Services.AddMudServices();
         ctx.Services.AddSingleton(invoiceApi);
@@ -118,7 +106,6 @@ public class InvoicesTests
 
         invoiceApi.SearchAsync(null, null, null, null, 1, 10)
             .Returns(Task.FromResult<SearchInvoiceResponse?>(new SearchInvoiceResponse()));
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse()));
 
         ctx.Services.AddMudServices();
         ctx.Services.AddSingleton(invoiceApi);
@@ -132,10 +119,7 @@ public class InvoicesTests
         cut.FindAll("button").Single(b => b.TextContent.Trim() == "Search").Click();
 
         cut.WaitForAssertion(() =>
-        {
-            _ = invoiceApi.Received(2).SearchAsync(null, null, null, null, 1, 10);
-            _ = invoiceApi.Received(2).GetDashboardAsync();
-        });
+            _ = invoiceApi.Received(2).SearchAsync(null, null, null, null, 1, 10));
     }
 
     [Fact]
@@ -156,7 +140,6 @@ public class InvoicesTests
                 PageSize = 10,
                 Invoices = []
             }));
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse()));
 
         ctx.Services.AddMudServices();
         ctx.Services.AddSingleton(invoiceApi);
@@ -186,7 +169,6 @@ public class InvoicesTests
 
         invoiceApi.SearchAsync(null, null, null, null, 1, 10)
             .Returns(Task.FromResult<SearchInvoiceResponse?>(SingleInvoiceResult()));
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse()));
 
         // Use the real dialog service so the dialog actually renders.
         ctx.Services.AddMudServices();
@@ -219,7 +201,6 @@ public class InvoicesTests
 
         invoiceApi.SearchAsync(null, null, null, null, 1, 10)
             .Returns(Task.FromResult<SearchInvoiceResponse?>(SingleInvoiceResult()));
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse()));
         invoiceApi.DeleteAsync(1).Returns(Task.FromResult(true));
 
         ctx.Services.AddMudServices();
@@ -257,7 +238,6 @@ public class InvoicesTests
 
         invoiceApi.SearchAsync(null, null, null, null, 1, 10)
             .Returns(Task.FromResult<SearchInvoiceResponse?>(SingleInvoiceResult()));
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse()));
 
         ctx.Services.AddMudServices();
         ctx.Services.AddSingleton(invoiceApi);
@@ -292,7 +272,6 @@ public class InvoicesTests
 
         invoiceApi.SearchAsync(null, null, null, null, 1, 10)
             .Returns(Task.FromResult<SearchInvoiceResponse?>(SingleInvoiceResult()));
-        invoiceApi.GetDashboardAsync().Returns(Task.FromResult<DashboardResponse?>(new DashboardResponse()));
         invoiceApi.DeleteAsync(1).Returns(Task.FromResult(false));
 
         ctx.Services.AddMudServices();
