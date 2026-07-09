@@ -34,15 +34,27 @@ Solution file: `SmartDocumentIntake.sln`
 
 ## Setup
 
-1. **Connection string** — set it in `IntakeServer/appsettings.json` (the only configuration source):
+1. **Connection string** — configure it in one of two ways:
+
+   **Option A (recommended): a `.env` file** in the `IntakeServer/` folder (git-ignored, so credentials are never committed):
+
+   ```
+   ConnectionStrings__DefaultConnection=Host=...;Database=...;Username=...;Password=...;SSL Mode=Require;
+   ```
+
+   Note the double underscore (`__`) — that is how .NET maps environment variables to the `ConnectionStrings:DefaultConnection` configuration key. The file is loaded at startup by `Program.cs`.
+
+   **Option B: `IntakeServer/appsettings.json`** (or `appsettings.Development.json`):
 
    ```json
    {
      "ConnectionStrings": {
-       "DefaultConnection": "Host=...;Database=...;Username=...;Password=...;SSL Mode=VerifyFull;Channel Binding=Require;"
+       "DefaultConnection": "Host=...;Database=...;Username=...;Password=...;SSL Mode=Require;"
      }
    }
    ```
+
+   The application fails fast at startup with a clear error message if no connection string is configured.
 
    The DbContext is registered via dependency injection in `IntakeServer/Program.cs`:
 
