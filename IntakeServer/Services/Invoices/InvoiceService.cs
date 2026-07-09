@@ -136,6 +136,8 @@ public class InvoiceService(IInvoiceRepository repository, ILogger<InvoiceServic
 
         if (request.InvoiceDate == default)
             errors.Add("Invoice date is required.");
+        else if (request.InvoiceDate > DateOnly.FromDateTime(DateTime.UtcNow))
+            errors.Add("Invoice date cannot be in the future.");
 
         if (request.Items.Count == 0)
             errors.Add("At least one line item is required.");
